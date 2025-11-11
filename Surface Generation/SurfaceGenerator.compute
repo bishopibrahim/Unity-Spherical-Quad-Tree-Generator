@@ -1,0 +1,34 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWStructuredBuffer<float3> outputVertices;
+
+float4x4 rotMat;
+float radius;
+float grid_displacement;
+int resolution;
+
+float3 GetPointOnUnitSphereFacingCamera(float3 p)
+{
+    float4 vec = float4(p, 1);
+    vec = mul(rotMat, vec); 
+    return normalize(vec.xyz);
+}
+
+[numthreads(256,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+
+    float x = ((float)index % ((float)resolution));
+    float y = (float) (index / resolution);
+    float2 percent = float2(x / (resolution-1), y / (resolution-1));
+    
+    float3 p = 2 * percent.x * float3(1,0,0) + 2 * percent.y * float3(0,1,0) + float3(-1, -1, 0);
+    
+    p = p + float3(0,0,1) * (1-(p.x*p.x*p.x*p.x))*(1-(p.y*p.y*p.y*p.y)) + float3(0,0,1) * grid_displacement;
+    outputVertices[index] = p; 
+    p = GetPointOnUnitSphereFacingCamera(p) * radius;
+
+    
+}
